@@ -20,5 +20,6 @@ func main() {
 		log.Fatal(e)
 	}
 }
+
 // https://m-production-f151.up.railway.app/health
 // https://m-nhasibuan5181-xe4oymdo.leapcell.dev/health
