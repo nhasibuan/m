@@ -11,7 +11,7 @@ func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
-			"Host":    r.Method,
+			"Method":  r.Method,
 			"Content": w.Header().Get("Content-Type"),
 		})
 	})
@@ -20,3 +20,5 @@ func main() {
 		log.Fatal(e)
 	}
 }
+// https://m-production-f151.up.railway.app/health
+// https://m-nhasibuan5181-xe4oymdo.leapcell.dev/health
