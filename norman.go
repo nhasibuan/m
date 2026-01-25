@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
+	"m/crud"
 	"net/http"
 )
 
 func main() {
-
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
@@ -15,8 +16,31 @@ func main() {
 			"Content": w.Header().Get("Content-Type"),
 		})
 	})
+	// curl http://localhost:8080/health
+	http.HandleFunc("/api/categories", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" { // select all
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(crud.Category1)
+		} else if r.Method == "POST" { // insert
+			var categoryBaru crud.Category // Category
+			err := json.NewDecoder(r.Body).Decode(&categoryBaru)
+			if err != nil {
+				http.Error(w, "Invalid request", http.StatusBadRequest)
+				return
+			}
+			categoryBaru.ID = len(crud.Category1) + 1
+			crud.Category1 = append(crud.Category1, categoryBaru)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(categoryBaru)
+		}
+	})
+	// curl http://localhost:8080/api/categories
+	http.HandleFunc("/api/categories/", crud.A)
+
 	e := http.ListenAndServe(":8080", nil)
-	if e != nil {
+	if e != nil && !errors.Is(e, http.ErrServerClosed) {
+
 		log.Fatal(e)
 	}
 }
