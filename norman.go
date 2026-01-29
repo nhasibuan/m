@@ -6,9 +6,34 @@ import (
 	"log"
 	"m/crud"
 	"net/http"
+	"os"
+	"strings"
+
+	"github.com/spf13/viper"
 )
 
+type Config struct {
+	Port   string `mapstructure:"PORT"`
+	DBConn string `mapstructure:"DB_CONN"`
+}
+
 func main() {
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBConn: viper.GetString("DB_CONN"),
+	}
+	db, err := crud.Connect(config.DBConn)
+	if err != nil {
+		log.Fatal("", err)
+	}
+	defer db.Close()
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
@@ -38,7 +63,7 @@ func main() {
 	// curl http://localhost:8080/api/categories
 	http.HandleFunc("/api/categories/", crud.A)
 
-	e := http.ListenAndServe(":8080", nil)
+	e := http.ListenAndServe(config.Port, nil)
 	if e != nil && !errors.Is(e, http.ErrServerClosed) {
 
 		log.Fatal(e)
@@ -46,4 +71,5 @@ func main() {
 }
 
 // https://m-production-f151.up.railway.app/health
+// https://railway.com?referralCode=rbJYUL
 // https://m-nhasibuan5181-xe4oymdo.leapcell.dev/health
