@@ -6,6 +6,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type dual struct {
+	ID int `json:"id"`
+}
+
+var Dual1 = dual{ID: 1}
+
 type Category struct {
 	ID          int    `json:"id"`
 	Nama        string `json:"nama"`
