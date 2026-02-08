@@ -39,8 +39,13 @@ func main() {
 	//
 	handler := crud.NewHandler(service)
 	http.HandleFunc("/test", handler.HandleHealth)
+	http.HandleFunc("/api/product", handler.HandleProducts)
 	http.HandleFunc("/api/categories", handler.Handle)
 	http.HandleFunc("/api/categories/", handler.HandleByID)
+	http.HandleFunc("/api/cart", handler.InsertShoppingCart)
+	http.HandleFunc("/api/checkout", handler.Checkout)
+	http.HandleFunc("/api/report/today", handler.HandleTodayReport)
+	http.HandleFunc("/api/report/", handler.HandleTodayReport)
 	//
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

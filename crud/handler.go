@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type handler struct {
@@ -33,6 +34,27 @@ func (h *handler) select1(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(products)
 }
 
+func (h *handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.selectAllProducts(w, r)
+	default:
+
+	}
+}
+
+func (h *handler) selectAllProducts(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	products, err := h.service1.selectAllProducts(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
+}
+
 func (h *handler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -43,16 +65,30 @@ func (h *handler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // https://m-nhasibuan5181-xe4oymdo.leapcell.dev/api/categories
+// https://mmmmmm.zeabur.app/api/categories
 func (h *handler) selectAll(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service1.selectAll()
+	c, err := h.service1.selectAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	json.NewEncoder(w).Encode(c)
 }
+
+// [
+//     {
+//         "id": 1,
+//         "nama": "Food",
+//         "description": "makanan"
+//     },
+//     {
+//         "id": 4,
+//         "nama": "Drinks",
+//         "description": "minuman"
+//     }
+// ]
 
 // https://m-nhasibuan5181-xe4oymdo.leapcell.dev/api/categories
 func (h *handler) insert(w http.ResponseWriter, r *http.Request) {
@@ -150,4 +186,96 @@ func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "delete successful",
 	})
+}
+
+func (h *handler) InsertShoppingCart(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var co CheckoutItem1
+		err := json.NewDecoder(r.Body).Decode(&co)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		err = h.service1.insertShoppingCart(&co)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(co)
+
+	default:
+		http.Error(w, r.Method, http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *handler) Checkout(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var req CheckoutRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		transaction, err := h.service1.checkout(req.Items)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(transaction)
+	default:
+		http.Error(w, r.Method, http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *handler) HandleTodayReport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	values := r.URL.Query()
+	startStr := values.Get("start_date")
+	endStr := values.Get("end_date")
+	var (
+		startDate time.Time
+		endDate   time.Time
+		err       error
+	)
+	if startStr == "" || endStr == "" {
+		startDate = time.Now().Truncate(24 * time.Hour)
+		endDate = startDate
+		// http.Error(w, "", http.StatusBadRequest)
+		// return
+	} else {
+
+		startDate, err = time.Parse("2006-01-02", startStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		endDate, err = time.Parse("2006-01-02", endStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	report, err := h.service1.GetTodayReport(startDate, endDate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(report)
 }
